@@ -1,9 +1,8 @@
 import { JsonPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { createApi } from "unsplash-js";
 @Component({
   selector: 'app-root',
   imports: [ FormsModule, JsonPipe],
@@ -17,9 +16,31 @@ export class App implements OnInit  {
   cities = toSignal<[string, string][]>(this.http.get<[string, string][]>('/us-cities-minimal.json'))
   searchString = signal<string>('')
   selectedCity = signal<[string, string] | null>(null)
+  imagesLoading = signal<boolean>(false)
 
-  unsplashApi = createApi({
-    accessKey:
+
+user = httpResource(() => ({
+  url: `https://pixabay.com/api/`,
+  method: 'GET',
+
+  params: {
+    'fast': 'yes',
+  },
+
+}));
+
+imageResults = signal<any>(null)
+  colors = computed(() => {
+    const results = this.imageResults()
+    const pallete = new Set()
+    if(results) {
+      results.forEach((element:any) => {
+        console.log('in colors loop', element)
+        pallete.add(element.color)
+      });
+    }
+    console.log(pallete)
+    return pallete
   })
 
   cityIndex = computed(() => {
@@ -69,8 +90,26 @@ export class App implements OnInit  {
     return []
   }
 
-  selectCiy(city:[string, string]) {
+   selectCiy(city:[string, string]) {
     this.selectedCity.set(city)
     this.searchString.set('')
+    this.imagesLoading.set(true)
+    const params = new HttpParams().appendAll({
+      key: '56768085-897e2b96efcb29225047e8985',
+      q: this.selectedCity()![0].toLowerCase(),
+      'image_type': 'photo'
+    })
+    this.http.get<any>('https://pixabay.com/api/', {params: params}).subscribe({
+      next: (value) => {
+        this.imageResults.set(value.hits)
+        this.imagesLoading.set(false)
+      },
+      error:(err) => {
+        console.error(err)
+                this.imagesLoading.set(false)
+
+      },
+    })
+
   }
 }
