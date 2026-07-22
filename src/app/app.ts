@@ -57,7 +57,7 @@ imageResults = signal<any>(null)
 
   search(term:string) : [string, string][] {
     const splitTerm = term.slice(0,2)
-    if (this.cityIndex().has(splitTerm)) {
+    if (this.cityIndex().has(splitTerm.toLowerCase())) {
       const cities = this.cityIndex().get(splitTerm.toLowerCase())
       return cities?.filter(el => el[0].toLowerCase().includes(term.toLowerCase())) ?? []
     }
