@@ -44,11 +44,11 @@
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        @if (imagesLoading()) {
+        @if (colorsLoading()) {
           @for (i of [0, 1, 2]; track i) {
             <div class="h-48 animate-pulse rounded-3xl border border-slate-200 bg-slate-100"></div>
           }
-        } @else if (!imagesLoading() && imageResults()) {
+        } @else if (!colorsLoading() && colors()) {
           @for (color of colors(); track $index) {
             <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
               <div class="mb-3 h-16 rounded-2xl border border-slate-200" [style.background-color]="color"></div>
@@ -78,7 +78,7 @@
         } @else if (!imagesLoading() && imageResults()) {
           @for (image of imageResults(); track $index) {
             <div class="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
-              <img class="h-48 w-full object-cover" [src]="image.previewURL" height="300" width="300" [alt]="image.alt_description">
+              <img crossorigin="anonymous" class="h-48 w-full object-cover" [src]="image.previewURL" height="300" width="300" [alt]="image.alt_description">
             </div>
           }
           @empty {

@@ -1,15 +1,15 @@
-import { JsonPipe } from '@angular/common';
-import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { getColor } from 'colorthief';
 @Component({
   selector: 'app-root',
-  imports: [ FormsModule, JsonPipe],
+  imports: [ FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnInit  {
+export class App  {
   protected readonly title = signal('travel-pallete');
 
   http = inject(HttpClient)
@@ -19,29 +19,11 @@ export class App implements OnInit  {
   imagesLoading = signal<boolean>(false)
 
 
-user = httpResource(() => ({
-  url: `https://pixabay.com/api/`,
-  method: 'GET',
-
-  params: {
-    'fast': 'yes',
-  },
-
-}));
+colors = signal<Set<any>>(new Set())
+colorsLoading = signal<boolean>(false)
 
 imageResults = signal<any>(null)
-  colors = computed(() => {
-    const results = this.imageResults()
-    const pallete = new Set()
-    if(results) {
-      results.forEach((element:any) => {
-        console.log('in colors loop', element)
-        pallete.add(element.color)
-      });
-    }
-    console.log(pallete)
-    return pallete
-  })
+
 
   cityIndex = computed(() => {
     const cities = this.cities()
@@ -57,7 +39,6 @@ imageResults = signal<any>(null)
         indexMap.set(index, values!)
       }
     });
-    console.log(indexMap)
     return indexMap
   })
 
@@ -65,7 +46,6 @@ imageResults = signal<any>(null)
     const search = this.searchString()
 
     if(search !== ''){
-      console.log(this.search(search))
       return this.search(search)
     }
 
@@ -75,15 +55,9 @@ imageResults = signal<any>(null)
 
 
 
-  ngOnInit(): void {
-    console.log(this.cities())
-  }
-
   search(term:string) : [string, string][] {
-    console.log('filtering', term)
     const splitTerm = term.slice(0,2)
     if (this.cityIndex().has(splitTerm)) {
-      console.log('index has')
       const cities = this.cityIndex().get(splitTerm.toLowerCase())
       return cities?.filter(el => el[0].toLowerCase().includes(term.toLowerCase())) ?? []
     }
@@ -94,6 +68,7 @@ imageResults = signal<any>(null)
     this.selectedCity.set(city)
     this.searchString.set('')
     this.imagesLoading.set(true)
+      this.colorsLoading.set(true)
     const params = new HttpParams().appendAll({
       key: '56768085-897e2b96efcb29225047e8985',
       q: this.selectedCity()![0].toLowerCase(),
@@ -103,6 +78,10 @@ imageResults = signal<any>(null)
       next: (value) => {
         this.imageResults.set(value.hits)
         this.imagesLoading.set(false)
+        setTimeout(() => {
+          this.detectColors(this.imageResults())
+
+        }, 1500);
       },
       error:(err) => {
         console.error(err)
@@ -111,5 +90,18 @@ imageResults = signal<any>(null)
       },
     })
 
+  }
+
+  async detectColors(images:any[]) {
+    if (images.length) {
+      const elements = document.querySelectorAll('img')
+      let promises: Promise<any>[] = []
+      elements.forEach( (value) => {
+        promises.push(getColor(value, {worker:true}))
+      })
+      const colors =await Promise.all(promises)
+      this.colors.set(new Set(colors.map(color => color.hex())))
+      this.colorsLoading.set(false)
+    }
   }
 }
